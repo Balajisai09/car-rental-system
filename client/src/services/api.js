@@ -11,10 +11,24 @@ const getAuthHeaders = () => {
 };
 
 const handleResponse = async (response) => {
-    const data = await response.json().catch(() => ({}));
+    let data = {};
+    try {
+        data = await response.json();
+    } catch (e) {
+        // Non-JSON response
+    }
+
     if (!response.ok) {
-        const error = (data && data.message) || response.statusText || 'Request failed';
-        throw new Error(error);
+        if (data && data.message) {
+            throw new Error(data.message);
+        }
+        if (response.status === 404) {
+            throw new Error('API endpoint not found (404). Backend service is not reachable.');
+        }
+        if (response.status === 500) {
+            throw new Error('Server/Database error (500). Please verify MongoDB connection string.');
+        }
+        throw new Error(response.statusText || `Request failed with status ${response.status}`);
     }
     return data;
 };
