@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { User, Mail, Lock, Phone, MapPin, CarFront } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, Lock, Phone, CarFront, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import bgImage from '../assets/auth-bg.png';
+import api from '../services/api';
 import './Auth.css';
 
 const Register = () => {
@@ -10,18 +11,36 @@ const Register = () => {
         name: '',
         email: '',
         password: '',
-        phone: '',
-        address: ''
+        phone: ''
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (error) setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Registration Data:', formData);
-        // Add registration logic here
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            await api.register(formData);
+            setSuccess('Account created successfully! Redirecting...');
+            setTimeout(() => {
+                navigate('/home');
+            }, 1000);
+        } catch (err) {
+            setError(err.message || 'Registration failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -44,6 +63,50 @@ const Register = () => {
                     <h1>Join the Drive</h1>
                     <p>Experience luxury at your fingertips</p>
                 </div>
+
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            background: 'rgba(255, 77, 79, 0.15)',
+                            border: '1px solid #ff4d4f',
+                            color: '#ff7875',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '8px',
+                            marginBottom: '1.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <AlertCircle size={18} />
+                        <span>{error}</span>
+                    </motion.div>
+                )}
+
+                {success && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            background: 'rgba(82, 196, 26, 0.15)',
+                            border: '1px solid #52c41a',
+                            color: '#73d13d',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '8px',
+                            marginBottom: '1.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <CheckCircle size={18} />
+                        <span>{success}</span>
+                    </motion.div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
@@ -89,6 +152,7 @@ const Register = () => {
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={handleChange}
+                                minLength={6}
                                 required
                             />
                         </div>
@@ -102,7 +166,7 @@ const Register = () => {
                                 type="tel"
                                 name="phone"
                                 className="auth-input"
-                                placeholder="+1 (234) 567-890"
+                                placeholder="+91 98765 43210"
                                 value={formData.phone}
                                 onChange={handleChange}
                             />
@@ -110,12 +174,21 @@ const Register = () => {
                     </div>
 
                     <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: loading ? 1 : 1.02 }}
+                        whileTap={{ scale: loading ? 1 : 0.98 }}
                         type="submit"
                         className="auth-button"
+                        disabled={loading}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                     >
-                        Create Account
+                        {loading ? (
+                            <>
+                                <Loader size={18} className="animate-spin" />
+                                <span>Creating Account...</span>
+                            </>
+                        ) : (
+                            'Create Account'
+                        )}
                     </motion.button>
                 </form>
 

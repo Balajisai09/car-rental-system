@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, CarFront } from 'lucide-react';
+import { Mail, Lock, CarFront, AlertCircle, Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
 import bgImage from '../assets/auth-bg.png';
+import api from '../services/api';
 import './Auth.css';
 
 const Login = () => {
@@ -10,26 +11,29 @@ const Login = () => {
         email: '',
         password: ''
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (error) setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Login Data:', formData);
+        setLoading(true);
+        setError('');
 
-        // Simple Login Bypass for Preview
-        const userData = {
-            name: formData.email.split('@')[0] || 'User',
-            email: formData.email
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        // Navigate to Home
-        navigate('/home');
+        try {
+            await api.login(formData.email, formData.password);
+            navigate('/home');
+        } catch (err) {
+            setError(err.message || 'Login failed. Please check your credentials.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -52,6 +56,28 @@ const Login = () => {
                     <h1>Welcome Back</h1>
                     <p>The keys are waiting for you</p>
                 </div>
+
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            background: 'rgba(255, 77, 79, 0.15)',
+                            border: '1px solid #ff4d4f',
+                            color: '#ff7875',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '8px',
+                            marginBottom: '1.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <AlertCircle size={18} />
+                        <span>{error}</span>
+                    </motion.div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
@@ -90,12 +116,21 @@ const Login = () => {
                     </div>
 
                     <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: loading ? 1 : 1.02 }}
+                        whileTap={{ scale: loading ? 1 : 0.98 }}
                         type="submit"
                         className="auth-button"
+                        disabled={loading}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                     >
-                        Sign In
+                        {loading ? (
+                            <>
+                                <Loader size={18} className="animate-spin" />
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            'Sign In'
+                        )}
                     </motion.button>
                 </form>
 

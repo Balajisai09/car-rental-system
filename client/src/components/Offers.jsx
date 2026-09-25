@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Tag, Calendar, CreditCard, Gift, Copy } from 'lucide-react';
+import { Tag, Calendar, CreditCard, Gift, Copy, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 import './Offers.css';
 
 const Offers = () => {
     const navigate = useNavigate();
 
-    const offers = [
+    const initialOffers = [
         {
             id: 1,
             code: 'FIRST500',
@@ -46,6 +47,35 @@ const Offers = () => {
         }
     ];
 
+    const [offers, setOffers] = useState(initialOffers);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOffers = async () => {
+            try {
+                const data = await api.getOffers();
+                if (Array.isArray(data) && data.length > 0) {
+                    const mapped = data.map(o => ({
+                        id: o._id || o.code,
+                        code: o.code,
+                        title: o.title,
+                        description: o.description,
+                        expiry: o.expiry,
+                        icon: o.discountType === 'percentage' ? <CreditCard size={32} /> : <Gift size={32} />,
+                        color: o.color || 'linear-gradient(135deg, #4834d4 0%, #686de0 100%)'
+                    }));
+                    setOffers(mapped);
+                }
+            } catch (err) {
+                console.warn('Using default offers:', err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOffers();
+    }, []);
+
     const copyCode = (code) => {
         navigator.clipboard.writeText(code);
         alert(`Coupon code ${code} copied to clipboard!`);
@@ -61,43 +91,50 @@ const Offers = () => {
                     transition={{ duration: 0.5 }}
                 >
                     <h1>Exclusive Offers</h1>
-                    <p>Trending deals curated just for you. Grab them before they expire!</p>
+                    <p>Trending deals curated just for you from our database. Grab them before they expire!</p>
                 </motion.div>
 
-                <div className="offers-grid">
-                    {offers.map((offer, index) => (
-                        <motion.div
-                            key={offer.id}
-                            className="offer-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            whileHover={{ y: -5 }}
-                        >
-                            <div className="offer-icon-wrapper" style={{ background: offer.color }}>
-                                {offer.icon}
-                            </div>
-                            <div className="offer-content">
-                                <span className="offer-expiry">{offer.expiry}</span>
-                                <h3>{offer.title}</h3>
-                                <p>{offer.description}</p>
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', gap: '0.75rem', color: '#888' }}>
+                        <Loader size={24} className="animate-spin" />
+                        <span>Loading offers...</span>
+                    </div>
+                ) : (
+                    <div className="offers-grid">
+                        {offers.map((offer, index) => (
+                            <motion.div
+                                key={offer.id}
+                                className="offer-card"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                whileHover={{ y: -5 }}
+                            >
+                                <div className="offer-icon-wrapper" style={{ background: offer.color }}>
+                                    {offer.icon}
+                                </div>
+                                <div className="offer-content">
+                                    <span className="offer-expiry">{offer.expiry}</span>
+                                    <h3>{offer.title}</h3>
+                                    <p>{offer.description}</p>
 
-                                <div className="coupon-section">
-                                    <div className="coupon-code">
-                                        {offer.code}
+                                    <div className="coupon-section">
+                                        <div className="coupon-code">
+                                            {offer.code}
+                                        </div>
+                                        <button className="copy-btn" onClick={() => copyCode(offer.code)} title="Copy Code">
+                                            <Copy size={18} />
+                                        </button>
                                     </div>
-                                    <button className="copy-btn" onClick={() => copyCode(offer.code)} title="Copy Code">
-                                        <Copy size={18} />
+
+                                    <button className="apply-btn" onClick={() => navigate('/home')}>
+                                        Book Now
                                     </button>
                                 </div>
-
-                                <button className="apply-btn" onClick={() => navigate('/home')}>
-                                    Book Now
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

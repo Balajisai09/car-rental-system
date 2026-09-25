@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Filter, Star, Info, Fuel, Gauge, Car } from 'lucide-react';
+import { Users, Filter, Star, Info, Fuel, Gauge, Car, Loader } from 'lucide-react';
+import api from '../services/api';
 import './CarsList.css';
 import kiaImg from '../assets/kia.jpeg';
 import tiagoImg from '../assets/tiagoev.jpeg';
 import swiftImg from '../assets/swift.avif';
 import nanoImg from '../assets/TataNano.avif';
 import beatImg from '../assets/Chevrolet-Beat.avif';
-
 
 const CarsList = ({ searchParams: propSearchParams, embedded }) => {
     const location = useLocation();
@@ -23,7 +23,10 @@ const CarsList = ({ searchParams: propSearchParams, embedded }) => {
         priceRange: 15000
     });
 
-    const sampleCars = [
+    const [dbCars, setDbCars] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fallbackCars = [
         {
             id: 1,
             name: 'Mahindra XUV700',
@@ -195,7 +198,30 @@ const CarsList = ({ searchParams: propSearchParams, embedded }) => {
         }
     ];
 
-    const filteredCars = sampleCars.filter(car => {
+    useEffect(() => {
+        const fetchCars = async () => {
+            try {
+                setLoading(true);
+                const data = await api.getCars();
+                if (Array.isArray(data) && data.length > 0) {
+                    setDbCars(data);
+                } else {
+                    setDbCars(fallbackCars);
+                }
+            } catch (err) {
+                console.warn('Using local fallback cars:', err.message);
+                setDbCars(fallbackCars);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCars();
+    }, []);
+
+    const carSource = dbCars.length > 0 ? dbCars : fallbackCars;
+
+    const filteredCars = carSource.filter(car => {
         return (filters.seats === 'all' || car.seats === parseInt(filters.seats)) &&
             (filters.category === 'all' || car.category === filters.category) &&
             (filters.transmission === 'all' || car.transmission === filters.transmission) &&
@@ -263,6 +289,7 @@ const CarsList = ({ searchParams: propSearchParams, embedded }) => {
                                 <option value="Sedan">Sedan</option>
                                 <option value="SUV">SUV</option>
                                 <option value="Luxury">Luxury</option>
+                                <option value="Hatchback">Hatchback</option>
                             </select>
                         </div>
 
@@ -286,55 +313,62 @@ const CarsList = ({ searchParams: propSearchParams, embedded }) => {
                             <p>{filteredCars.length} results found</p>
                         </div>
 
-                        <div className="cars-grid">
-                            {filteredCars.map(car => (
-                                <motion.div
-                                    key={car.id}
-                                    layout
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="car-list-card"
-                                >
-                                    <div className="car-card-img">
-                                        <img src={car.image} alt={car.name} />
-                                        <div className="car-tag">{car.category}</div>
-                                    </div>
-                                    <div className="car-card-body">
-                                        <div className="car-name-row">
-                                            <h3>{car.name}</h3>
-                                            <div className="car-rating">
-                                                <Star size={14} fill="#FFD700" color="#FFD700" />
-                                                <span>{car.rating}</span>
+                        {loading ? (
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px', gap: '0.75rem', color: '#888' }}>
+                                <Loader size={24} className="animate-spin" />
+                                <span>Loading cars from database...</span>
+                            </div>
+                        ) : (
+                            <div className="cars-grid">
+                                {filteredCars.map(car => (
+                                    <motion.div
+                                        key={car._id || car.id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="car-list-card"
+                                    >
+                                        <div className="car-card-img">
+                                            <img src={car.image} alt={car.name} />
+                                            <div className="car-tag">{car.category}</div>
+                                        </div>
+                                        <div className="car-card-body">
+                                            <div className="car-name-row">
+                                                <h3>{car.name}</h3>
+                                                <div className="car-rating">
+                                                    <Star size={14} fill="#FFD700" color="#FFD700" />
+                                                    <span>{car.rating}</span>
+                                                </div>
+                                            </div>
+                                            <div className="car-specs">
+                                                <span><Users size={14} /> {car.seats} Seats</span>
+                                                <span><Fuel size={14} /> {car.fuel}</span>
+                                                <span><Gauge size={14} /> {car.mileage}</span>
+                                                <span>{car.transmission}</span>
+                                            </div>
+                                            <div className="car-features-list">
+                                                {car.features?.map((feature, idx) => (
+                                                    <span key={idx} className="feature-pill"><Car size={10} /> {feature}</span>
+                                                ))}
+                                            </div>
+                                            <hr className="divider" />
+                                            <div className="car-footer">
+                                                <div className="car-price">
+                                                    <span className="amount">₹{car.price.toLocaleString()}</span>
+                                                    <span className="unit">/day</span>
+                                                </div>
+                                                <button
+                                                    className="select-car-btn"
+                                                    onClick={() => navigate('/car-details', { state: { car } })}
+                                                >
+                                                    View Details
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="car-specs">
-                                            <span><Users size={14} /> {car.seats} Seats</span>
-                                            <span><Fuel size={14} /> {car.fuel}</span>
-                                            <span><Gauge size={14} /> {car.mileage}</span>
-                                            <span>{car.transmission}</span>
-                                        </div>
-                                        <div className="car-features-list">
-                                            {car.features.map((feature, idx) => (
-                                                <span key={idx} className="feature-pill"><Car size={10} /> {feature}</span>
-                                            ))}
-                                        </div>
-                                        <hr className="divider" />
-                                        <div className="car-footer">
-                                            <div className="car-price">
-                                                <span className="amount">₹{car.price.toLocaleString()}</span>
-                                                <span className="unit">/day</span>
-                                            </div>
-                                            <button
-                                                className="select-car-btn"
-                                                onClick={() => navigate('/car-details', { state: { car } })}
-                                            >
-                                                View Details
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
                     </main>
                 </div>
             </div>

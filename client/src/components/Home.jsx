@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Users, Calendar, Clock, Search, ShieldCheck, Headset, Zap, CreditCard, Mail, Phone, Send } from 'lucide-react';
 import CarsList from './CarsList';
 import './Home.css';
+import api from '../services/api';
 import swiftImg from '../assets/swift.avif';
 
 
@@ -18,6 +19,22 @@ const Home = () => {
         pickupTime: '10:00',
         returnTime: '10:00'
     });
+
+    const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+    const [contactStatus, setContactStatus] = useState({ loading: false, success: '', error: '' });
+
+    const handleContactSubmit = async (e) => {
+        e.preventDefault();
+        setContactStatus({ loading: true, success: '', error: '' });
+        try {
+            await api.submitContact(contactForm);
+            setContactStatus({ loading: false, success: 'Thank you! Your message has been saved to the database.', error: '' });
+            setContactForm({ name: '', email: '', message: '' });
+            setTimeout(() => setContactStatus(prev => ({ ...prev, success: '' })), 4000);
+        } catch (err) {
+            setContactStatus({ loading: false, success: '', error: err.message || 'Failed to send message.' });
+        }
+    };
 
     const handleChange = (e) => {
         setSearchData({ ...searchData, [e.target.name]: e.target.value });
@@ -323,18 +340,47 @@ const Home = () => {
                                     initial={{ x: 20, opacity: 0 }}
                                     whileInView={{ x: 0, opacity: 1 }}
                                     viewport={{ once: true }}
+                                    onSubmit={handleContactSubmit}
                                 >
+                                    {contactStatus.success && (
+                                        <div style={{ padding: '0.75rem', background: 'rgba(82, 196, 26, 0.2)', border: '1px solid #52c41a', color: '#73d13d', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                            {contactStatus.success}
+                                        </div>
+                                    )}
+                                    {contactStatus.error && (
+                                        <div style={{ padding: '0.75rem', background: 'rgba(255, 77, 79, 0.2)', border: '1px solid #ff4d4f', color: '#ff7875', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                            {contactStatus.error}
+                                        </div>
+                                    )}
                                     <div className="form-group">
-                                        <input type="text" placeholder="Your Name" required />
+                                        <input
+                                            type="text"
+                                            placeholder="Your Name"
+                                            value={contactForm.name}
+                                            onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div className="form-group">
-                                        <input type="email" placeholder="Your Email" required />
+                                        <input
+                                            type="email"
+                                            placeholder="Your Email"
+                                            value={contactForm.email}
+                                            onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div className="form-group">
-                                        <textarea placeholder="Your Message" rows="5" required></textarea>
+                                        <textarea
+                                            placeholder="Your Message"
+                                            rows="5"
+                                            value={contactForm.message}
+                                            onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                                            required
+                                        ></textarea>
                                     </div>
-                                    <button type="submit" className="submit-btn">
-                                        <Send size={18} /> Send Message
+                                    <button type="submit" className="submit-btn" disabled={contactStatus.loading}>
+                                        <Send size={18} /> {contactStatus.loading ? 'Sending...' : 'Send Message'}
                                     </button>
                                 </motion.form>
                             </div>

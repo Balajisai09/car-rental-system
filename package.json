@@ -1,0 +1,22 @@
+{
+  "name": "car-rentals-monorepo",
+  "version": "1.0.0",
+  "description": "GoDrive - Full Stack Car Rental Platform (React + Vite + Node.js + Express + MongoDB)",
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "seed": "npm --prefix server run seed",
+    "start": "node server/server.js",
+    "build": "npm --prefix client run build"
+  },
+  "keywords": [
+    "car-rental",
+    "mern",
+    "mongodb",
+    "express",
+    "react",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC"
+}
